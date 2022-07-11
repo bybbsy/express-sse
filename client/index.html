@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Express</title>
+</head>
+
+<body>
+    <div class="">
+        <form class="">
+            <div>
+                <label for="input-name">Your name:</label>
+                <input type="text" id="input-name" class="input-name">
+            </div>
+            <div>
+                <label for="input-msg">Your message:</label>
+                <input type="text" id="input-msg" class="input-msg">
+            </div>
+            <div>
+                <button class="send-message-button">Send message</button>
+            </div>
+        </form>
+    </div>
+
+    <h4>Messages:</h4>
+    <ul class="event-data">
+    </ul>
+</body>
+<script>
+    let es;
+    const sendMessageButton = document.querySelector('.send-message-button')
+    const ul = document.querySelector('.event-data')
+
+    const inputName = document.querySelector('.input-name')
+
+    es = new EventSource('http://localhost:7070/api/sse/connect')
+
+    function clearListItems() {
+        const children = ul.childNodes;
+
+        children.forEach(child => ul.removeChild(child))
+    }
+    
+    function renderListItem(author, message) {
+        const inputName = document.querySelector('.input-name').value
+        const newListItem = document.createElement('li')
+
+        newListItem.textContent = `${author}: ${message}`
+        ul.appendChild(newListItem)
+    }
+    
+    let messagesDb = [];
+    es.onmessage = (e) => {
+        const data = JSON.parse(e.data) 
+        if(Array.isArray(data)) {
+            messagesDb = data;
+            messagesDb.forEach(el => renderListItem(el.author, el.message))
+        } else {
+            const { author, message } = JSON.parse(e.data)
+            messagesDb.push({author, message })
+            renderListItem(author, message)
+        }
+        
+    }
+
+    sendMessageButton.addEventListener('click', async (e) => {
+        e.preventDefault()
+        const inputName = document.querySelector('.input-name').value
+        const msg = document.querySelector('.input-msg').value
+  
+        const response = await fetch('http://localhost:7070/api/sse/send-msg', {
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: JSON.stringify({
+                author: inputName,
+                message: msg
+            })
+        })
+         
+        
+    })
+
+
+    // stopStreamButton.addEventListener('click', () => {
+    //     if (es instanceof EventSource) {
+    //         es.close()
+    //     }
+    // })
+
+
+</script>
+
+</html>
